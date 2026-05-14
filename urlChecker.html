@@ -219,6 +219,12 @@
       font-weight: bold;
     }
 
+    #status {
+      font-size: 14px;
+      color: #888;
+      margin-top: 10px;
+    }
+
     footer {
       background: #1e3c72;
       color: white;
@@ -313,7 +319,8 @@
     <h2 class="section-title">간단 URL 검사 화면</h2>
     <div class="demo-box">
       <input type="text" id="urlInput" placeholder="검사할 URL을 입력하세요" />
-      <button onclick="checkUrl()">검사하기</button>
+      <button onclick="checkUrl()" id="checkBtn" disabled>검사하기</button>
+      <p id="status">안전 도메인 목록 로딩 중...</p>
       <p id="result"></p>
     </div>
   </section>
@@ -340,6 +347,7 @@
 
   <script>
     const menuSections = ['intro', 'features', 'tech', 'flow', 'schedule'];
+    let safeDomains = null;
 
     function toggleMenu() {
       document.getElementById('sidebar').classList.toggle('open');
@@ -353,33 +361,54 @@
       toggleMenu();
     }
 
-    async function checkUrl() {
+    function extractDomain(url) {
+      url = url.trim();
+      if (!/^https?:\/\//i.test(url)) url = "http://" + url;
+      try {
+        let host = new URL(url).hostname.toLowerCase();
+        if (host.startsWith("www.")) host = host.slice(4);
+        return host;
+      } catch {
+        return url.toLowerCase();
+      }
+    }
+
+    async function loadSafeDomains() {
+      const status = document.getElementById("status");
+      try {
+        const res = await fetch("safeUrl.csv");
+        const text = await res.text();
+        safeDomains = new Set();
+        for (const line of text.split("\n")) {
+          const parts = line.split(",");
+          if (parts.length >= 2) safeDomains.add(parts[1].trim().toLowerCase());
+        }
+        status.textContent = `안전 도메인 ${safeDomains.size.toLocaleString()}개 로드 완료`;
+        document.getElementById("checkBtn").disabled = false;
+      } catch (e) {
+        status.textContent = "도메인 목록 로드 실패. 파일 경로를 확인해주세요.";
+      }
+    }
+
+    function checkUrl() {
       const input = document.getElementById("urlInput").value.trim();
       const result = document.getElementById("result");
 
-      if (input === "") {
+      if (!input) {
         result.style.color = "#d97706";
         result.textContent = "URL을 입력해주세요.";
         return;
       }
 
-      result.style.color = "#888";
-      result.textContent = "서버에 검사 요청 중...";
-
-      try {
-        const res = await fetch("/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: input })
-        });
-        const data = await res.json();
-        result.style.color = data.safe ? "green" : "red";
-        result.textContent = data.message;
-      } catch (e) {
-        result.style.color = "#d97706";
-        result.textContent = "서버에 연결할 수 없습니다. server.py가 실행 중인지 확인해주세요.";
-      }
+      const domain = extractDomain(input);
+      const safe = safeDomains.has(domain);
+      result.style.color = safe ? "green" : "red";
+      result.textContent = safe
+        ? `안전한 URL입니다. (${domain}은 신뢰 목록에 있습니다)`
+        : `위험 URL로 의심됩니다. (${domain}은 신뢰 목록에 없습니다)`;
     }
+
+    loadSafeDomains();
   </script>
 </body>
 </html>
