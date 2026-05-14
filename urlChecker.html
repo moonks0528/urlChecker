@@ -353,7 +353,7 @@
       toggleMenu();
     }
 
-    function checkUrl() {
+    async function checkUrl() {
       const input = document.getElementById("urlInput").value.trim();
       const result = document.getElementById("result");
 
@@ -363,15 +363,21 @@
         return;
       }
 
-      const dangerWords = ["phishing", "malware", "hack", "free-money", "login-check"];
-      const isDanger = dangerWords.some(word => input.toLowerCase().includes(word)) || input.length > 60;
+      result.style.color = "#888";
+      result.textContent = "서버에 검사 요청 중...";
 
-      if (isDanger) {
-        result.style.color = "red";
-        result.textContent = "위험 URL로 의심됩니다. 접속을 차단합니다.";
-      } else {
-        result.style.color = "green";
-        result.textContent = "안전한 URL로 판단됩니다. 접속 가능합니다.";
+      try {
+        const res = await fetch("http://localhost:8765/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: input })
+        });
+        const data = await res.json();
+        result.style.color = data.safe ? "green" : "red";
+        result.textContent = data.message;
+      } catch (e) {
+        result.style.color = "#d97706";
+        result.textContent = "서버에 연결할 수 없습니다. server.py가 실행 중인지 확인해주세요.";
       }
     }
   </script>
