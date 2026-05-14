@@ -376,17 +376,16 @@
     async function loadSafeDomains() {
       const status = document.getElementById("status");
       try {
-        const res = await fetch("safeUrl.csv");
+        const res = await fetch("domains.txt");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        safeDomains = new Set();
-        for (const line of text.split("\n")) {
-          const parts = line.split(",");
-          if (parts.length >= 2) safeDomains.add(parts[1].trim().toLowerCase());
-        }
+        safeDomains = new Set(text.split("\n").map(d => d.trim()).filter(d => d.length > 0));
+        if (safeDomains.size < 1000) throw new Error("도메인 수 이상");
         status.textContent = `안전 도메인 ${safeDomains.size.toLocaleString()}개 로드 완료`;
         document.getElementById("checkBtn").disabled = false;
       } catch (e) {
-        status.textContent = "도메인 목록 로드 실패. 파일 경로를 확인해주세요.";
+        status.style.color = "red";
+        status.textContent = `도메인 목록 로드 실패 (${e.message}). domains.txt가 같은 폴더에 있는지 확인해주세요.`;
       }
     }
 
