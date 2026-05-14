@@ -1,6 +1,6 @@
 import csv
 import json
-import socket
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
 
@@ -28,6 +28,20 @@ def is_safe(url):
     return domain in SAFE_DOMAINS, domain
 
 class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path in ("/", "/urlChecker.html"):
+            html_path = os.path.join(os.path.dirname(__file__), "urlChecker.html")
+            with open(html_path, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_response(404)
+            self.end_headers()
+
     def do_OPTIONS(self):
         self._send_cors()
 

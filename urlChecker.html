@@ -367,7 +367,7 @@
       result.textContent = "서버에 검사 요청 중...";
 
       try {
-        const res = await fetch("http://localhost:8765/check", {
+        const res = await fetch("/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: input })
